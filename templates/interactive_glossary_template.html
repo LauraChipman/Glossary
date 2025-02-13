@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Interactive Glossary</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='glossary_style.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=GFS+Didot&family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+    <script src="{{ url_for('static', filename='glossary_script.js') }}"></script>
+  </head>
+  <body>
+    <h1>
+      <a
+        href="{{ url_for('index') }}"
+        id="glossary-link"
+        class="glossary-title"
+        >Laura's Glossary</a
+      >
+    </h1>
+
+    <div id="top-nav">
+      <!-- Search bar and link to add a new entry -->
+      <input
+        type="text"
+        id="search-bar"
+        placeholder="Search terms..."
+        onkeyup="filterTerms()"
+        style="width: 80%; padding: 10px; box-sizing: border-box"
+      />
+      <button onclick="filterTerms()">Search</button>
+      <button onclick=window.location.href='{{ url_for('add_entry') }}'>Add New Entry</button>
+
+      <p id="no-results" style="display: none; color: red">No results found.</p>
+      </div>
+    </div>
+    
+    <!-- Flash messages from Flask -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          <div class="flash-messages">
+              {% for category, message in messages %}
+                  <div class="flash-message {{ category }}">{{ message }}</div>
+              {% endfor %}
+          </div>
+      {% endif %}
+    {% endwith %}
+
+      <div class="filter-container">
+        <button type="button" class="filter-toggle" onclick="toggleFilter()">Filter By Tag</button>
+
+        <div id="tag-filter" class="tag-filter-area">
+              {% for unique_tag in all_tags %}
+              <button onclick="filterByTag('{{ unique_tag }}')">
+                {{ unique_tag }}
+              </button>
+              {% endfor %}
+        </div>
+      </div>
+
+    
+      <button onclick="closeAllTopics()" class="close-all-button">Close All Topics</button>
+
+    <!-- Results heading -->
+    <h2 id="search-heading" style="display: none">
+      Results That Match Your Search
+    </h2>
+
+      <!-- Container for alphabet letters in a grid -->
+      <div class="alphabet-container">
+        {% for letter, entries in glossary.items() %}
+            <!-- Alphabet letter header with onclick to toggle titles visibility -->
+            <h2 id="letter-{{ letter }}" class="alphabet-title" onclick="toggleAlphabetVisibility('{{ letter }}')">
+                {{ letter }}
+            </h2>
+    
+            <!-- Container for all titles under each alphabet letter -->
+            <div id="titles-{{ letter }}" class="title-group" style="display: none;">
+                {% for entry in entries %}
+                {% set content_id = entry.get('title', 'unknown-title') | replace(' ', '-') | lower %}
+    
+                <!-- Title with onclick event to toggle content, edit, and delete links -->
+                <div
+                    class="definition-title"
+                    onclick="toggleVisibility('{{ content_id }}-content', '{{ content_id }}-edit', '{{ content_id }}-delete')"
+                >
+                    {{ entry.get('title', 'No Title') }}
+                </div>
+    
+                <div class="action-buttons">
+                    <!-- Edit link with unique ID for each entry -->
+                    <a
+                        href="{{ url_for('edit_entry', title=entry.get('title', 'Untitled')) }}"
+                        id="{{ content_id }}-edit"
+                        class="edit-link"
+                        style="display: none"
+                    >
+                        Edit
+                    </a>
+    
+                    <!-- Delete button for each entry -->
+                    <button
+                        onclick="deleteEntry('{{ entry._id }}')"
+                        id="{{ content_id }}-delete"
+                        class="delete-button"
+                        style="display: none;"
+                    >
+                        Delete
+                    </button>
+                </div>
+    
+                <!-- Definition content with unique ID, initially hidden -->
+                <div
+                    id="{{ content_id }}-content"
+                    class="definition-content"
+                    style="display: none;"
+                    data-tags="{{ entry.tags | join(',') }}"
+                >
+                    <div>
+                        <!-- <p>ID: {{ entry._id }}</p> -->
+                    </div>
+    
+                    {% if entry.is_html %}
+                        {{ entry.definition | join('') | safe }}
+                    {% else %}
+                        {{ entry.definition | join('') }}
+                    {% endif %}
+    
+                    <div class="tags">
+                        {% for tag in entry.tags %}
+                        <button class="tag" onclick="filterByTag('{{ tag }}')">
+                            {{ tag }}
+                        </button>
+                        {% endfor %}
+                    </div>
+    
+                    <!-- Display image if available -->
+                    {% if entry.get('image_ids') %}
+                    <div class="image-preview">
+                        <!-- Display a few thumbnails of the images -->
+                        {% for image_id in entry['image_ids'][:3] %}
+                            <img
+                                src="{{ url_for('get_image', image_id=image_id) }}"
+                                alt="Preview Image"
+                                data-url="{{ url_for('get_image', image_id=image_id) }}"
+                                class="thumbnail"
+                                onclick="viewImage(this)"
+                            />
+                        {% endfor %}
+    
+                        <!-- Button to view all images in a modal -->
+                        <button onclick="viewImages({{ entry['image_ids'] | tojson }})">View All Images</button>
+                    </div>
+                    {% endif %}
+    
+                    <!-- Display link if available -->
+                    {% if entry.get('link') %}
+                    <p><a href="{{ entry['link'] }}" target="_blank">Related Link</a></p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    
+    <div class="glossary-stats-container">
+      <button type="button" onclick="toggleStats()">Glossary Stats</button>
+      <div id="glossary-stats" class="glossary-stats-content">
+          <p>Total Entries: {{ total_entries }}</p>
+  
+          {% if recent_entry_id %}
+          <p>Most Recently Added: 
+              <a href="{{ url_for('entry_page', entry_id=recent_entry_id) }}">
+                  {{ recent_entry_title }}
+              </a>
+          </p>
+          {% else %}
+          <p>Most Recently Added: {{ recent_entry_title }}</p>
+          {% endif %}
+  
+          {% if recent_edit_id %}
+          <p>Most Recently Edited: 
+              <a href="{{ url_for('entry_page', entry_id=recent_edit_id) }}">
+                  {{ recent_edit_title }}
+              </a>
+          </p>
+          {% else %}
+          <p>Most Recently Edited: {{ recent_edit_title }}</p>
+          {% endif %}
+      </div>
+  </div>
+  
+  
+  
+    </div>
+    <button onclick="scrollToTop()" id="backToTop">Back to Top</button>
+
+    <script>
+      function toggleFilter() {
+          const filterArea = document.getElementById("tag-filter");
+          filterArea.classList.toggle("show");
+      }
+  </script>
+  </body>
+</html>

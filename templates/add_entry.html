@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='glossary_style.css') }}">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=GFS+Didot&family=Roboto&display=swap" rel="stylesheet">
+    <title>Add Glossary Entry</title>
+</head>
+<body>
+    <h1>
+        <a
+          href="{{ url_for('index') }}"
+          id="glossary-link"
+          class="glossary-title"
+          >Laura's Glossary</a
+        >
+      </h1>
+    <h2>Add a New Glossary Entry</h2>
+    <form id="glossaryForm" action="{{ url_for('add_entry') }}" method="post" enctype="multipart/form-data">
+        <label for="title">Title</label><br>
+        <input type="text" id="title" name="title" required><br><br>
+        
+        <label for="definition">Definition</label><br>
+        <div id="editor"></div>
+        <input type="hidden" name="definition">
+        <input type="hidden" name="is_html" id="is_html" value="True"> 
+
+        <label for="tags">Tags</label>
+        <input type="text" id="tags" name="tags" placeholder="Enter tags separated by commas">
+
+        <label for="link">Additional Link (optional)</label><br>
+        <input type="url" id="link" name="link"><br><br>
+
+        
+        <label for="images">Upload Images (optional)</label><br>
+        <div id="image-upload">
+            <input type="file" id="images" name="images[]" accept="image/*" multiple><br><br>
+            <div id="thumbnail-preview"></div>
+        </div>
+
+        <button type="submit">Submit Entry</button>
+    </form>
+
+    <!-- Load Quill JavaScript before initializing Quill -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    
+    <!-- Initialize Quill after the library has loaded -->
+
+    <script>
+        const toolbarOptions = [
+            ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+            ['blockquote', 'code-block'],
+            ['link', 'image', 'video', 'formula'],
+
+            [{ 'header': 1 }, { 'header': 2 }],               // custom button values
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'list': 'check' }],
+            [{ 'script': 'sub'}, { 'script': 'super' }],      // superscript/subscript
+            [{ 'indent': '-1'}, { 'indent': '+1' }],          // outdent/indent
+            [{ 'direction': 'rtl' }],                         // text direction
+
+            [{ 'size': ['small', false, 'large', 'huge'] }],  // custom dropdown
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+            [{ 'color': [] }, { 'background': [] }],          // dropdown with defaults from theme
+            [{ 'font': [] }],
+            [{ 'align': [] }],
+
+            ['clean']                                         // remove formatting button
+            ];
+            const quill = new Quill('#editor', {
+                modules: {
+                    toolbar: toolbarOptions
+                },
+                theme: 'snow'
+                });
+    
+        // Capture content and set `is_html` on form submission
+        document.querySelector('form').onsubmit = function() {
+            let content = quill.root.innerHTML;
+            document.querySelector('input[name=definition]').value = content;
+
+            // Set is_html to "True" unconditionally
+            document.querySelector('#is_html').value = 'True';
+        };
+
+                
+        document.getElementById("images").addEventListener("change", function(event) {
+            const thumbnailPreview = document.getElementById("thumbnail-preview");
+            thumbnailPreview.innerHTML = ""; // Clear existing thumbnails
+
+            Array.from(event.target.files).forEach(file => {
+                if (file && file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement("img");
+                        img.src = e.target.result;
+                        img.classList.add("thumbnail");
+                        thumbnailPreview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
+

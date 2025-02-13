@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ entry.title }} - Glossary Entry</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='glossary_style.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=GFS+Didot&family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+    <script src="{{ url_for('static', filename='glossary_script.js') }}"></script>
+</head>
+<body>
+    <h1>
+        <a
+          href="{{ url_for('index') }}"
+          id="glossary-link"
+          class="glossary-title"
+          >Laura's Glossary</a
+        >
+      </h1>
+    <div class="definition-content">
+    <div class="entry-container">
+        <h1>{{ entry.title }}</h1>
+
+        <div class="action-buttons">
+            <!-- Edit link with unique ID for each entry -->
+        <a
+            href="{{ url_for('edit_entry', title=entry.get('title', 'Untitled')) }}"
+            id="{{ content_id }}-edit"
+            class="edit-link"
+            >
+            Edit
+        </a>
+            
+        <!-- Delete button for each entry -->
+        <button
+            onclick="deleteEntry('{{ entry._id }}')"
+            id="{{ content_id }}-delete"
+            class="delete-button"
+        >
+            Delete
+        </button>
+    </div>
+        <!-- Definition content -->
+        <div class="entry-definition">
+            {% if entry.is_html %}
+                {{ entry.definition | safe }}
+            {% else %}
+                <p>{{ entry.definition }}</p>
+            {% endif %}
+        </div>
+    </div>
+        <!-- Tags -->
+        <div class="tags">
+            {% for tag in entry.tags %}
+            <button class="tag" onclick="filterByTag('{{ tag }}')">
+                {{ tag }}
+            </button>
+            {% endfor %}
+        </div>
+
+
+        <!-- Images -->
+        {% if entry.image_ids %}
+        <div class="entry-images">
+            <h3>Images</h3>
+            {% for image_id in entry.image_ids %}
+            <img src="{{ url_for('get_image', image_id=image_id) }}" alt="Image for {{ entry.title }}" class="entry-image">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Related Link -->
+        {% if entry.link %}
+        <div class="entry-link">
+            <h3>Related Link</h3>
+            <p><a href="{{ entry.link }}" target="_blank">{{ entry.link }}</a></p>
+        </div>
+        {% endif %}
+        
+
+    </div>
+        <!-- Back to Glossary link -->
+        <h2><a href="{{ url_for('index') }}">Back to Glossary</h2></p>
+    
+
+</body>
+</html>
